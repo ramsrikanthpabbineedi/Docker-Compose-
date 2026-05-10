@@ -117,36 +117,27 @@ pipeline {
                 }
             }
         }
-        
         stage('Ansible Ping Test') {
-  steps {
-    echo "📡 Testing Ansible connectivity..."
-    withCredentials([sshUserPrivateKey(
-      credentialsId: 'app-server-ssh',
-      keyFileVariable: 'KEY'
-    )]) {
-      sh '''
-        echo "[web]" > inventory.ini
-        echo "localhost ansible_user=jenkins ansible_ssh_private_key_file=$KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory.ini
-        ansible -i inventory.ini web -m ping
-      '''
+            steps {
+                echo "📡 Testing Ansible connectivity to EC2..."
+                sh """
+                # Copy key to safe path (no spaces)
+                cp \$HOME/.ssh/myapp /tmp/ansible_key 2>/dev/null || true
+                chmod 600 /tmp/ansible_key
+                
+                cat > inventory.ini << EOF
+                [appservers]
+                ${env.EC2_PUBLIC_IP} ansible_user=ubuntu ansible_ssh_private_key_file=/tmp/ansible_key
+                [appservers:vars]
+                ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=10'
+                EOF
+
+            echo "=== Inventory ==="
+            cat inventory.ini
+
+            ansible -i inventory.ini appservers -m ping
+        """
     }
-  }
-}
-
-stage('Ansible Configure Tools') {
-  steps {
-    echo "⚙️ Running Ansible Playbook..."
-    sh '''
-      echo "[web]"                        > inventory.ini
-      echo "localhost ansible_connection=local" >> inventory.ini
-
-      ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
-        --become \
-        -e "ansible_become_password=" \
-        -v
-    '''
-  }
 }
 
         // ──────────────────────────────────────────────────────
