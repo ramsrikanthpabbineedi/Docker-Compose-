@@ -1,0 +1,189 @@
+---
+# ansible/install_tools.yml
+# Runs on Jenkins server itself (localhost)
+# Installs: Docker, kubectl, AWS CLI, Ansible dependencies
+
+- name: Configure Jenkins server with DevOps tools
+  hosts: web
+  become: true
+  gather_facts: true
+
+  vars:
+    docker_compose_version: "v2.27.0"
+    terraform_version: "1.8.5"
+    kubectl_version: "v1.30.0"
+
+  tasks:
+
+    # ── System Update ─────────────────────────────────────────────────────────
+
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    # ── Install Base Packages ─────────────────────────────────────────────────
+
+    - name: Install required base packages
+      apt:
+        name:
+          - curl
+          - unzip
+          - wget
+          - git
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - software-properties-common
+        state: present
+
+    # ── Docker ────────────────────────────────────────────────────────────────
+
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      when: docker_check.rc != 0
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Print Docker version
+      debug:
+        msg: "✅ Docker: {{ docker_version.stdout }}"
+
+    # ── Docker Compose ────────────────────────────────────────────────────────
+
+    - name: Check if Docker Compose is installed
+      command: docker-compose --version
+      register: compose_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Download Docker Compose binary
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"
+      when: compose_check.rc != 0
+
+    - name: Ensure Docker Compose is executable
+      file:
+        path: /usr/local/bin/docker-compose
+        mode: "0755"
+        state: file
+
+    - name: Create symlink for docker compose plugin style
+      file:
+        src: /usr/local/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+        force: true
+
+    - name: Verify Docker Compose installation
+      command: docker-compose --version
+      register: compose_version
+      changed_when: false
+
+    - name: Print Docker Compose version
+      debug:
+        msg: "✅ Docker Compose: {{ compose_version.stdout }}"
+
+    # ── kubectl ───────────────────────────────────────────────────────────────
+
+   
+    # ── AWS CLI ───────────────────────────────────────────────────────────────
+
+    - name: Check if AWS CLI is installed
+      command: aws --version
+      register: aws_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Download AWS CLI v2
+      get_url:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        dest: /tmp/awscliv2.zip
+      when: aws_check.rc != 0
+
+    - name: Unzip AWS CLI installer
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: yes
+      when: aws_check.rc != 0
+
+    - name: Install AWS CLI
+      command: /tmp/aws/install --update
+      when: aws_check.rc != 0
+
+    - name: Verify AWS CLI installation
+      command: aws --version
+      register: aws_version
+      changed_when: false
+
+    - name: Print AWS CLI version
+      debug:
+        msg: "✅ AWS CLI: {{ aws_version.stdout }}"
+
+    # ── Terraform ─────────────────────────────────────────────────────────────
+
+   
+
+   
+    # ── Ansible ───────────────────────────────────────────────────────────────
+
+    - name: Check if Ansible is installed
+      command: ansible --version
+      register: ansible_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install Ansible
+      apt:
+        name: ansible
+        state: present
+      when: ansible_check.rc != 0
+
+    - name: Verify Ansible installation
+      command: ansible --version
+      register: ansible_version
+      changed_when: false
+
+    - name: Print Ansible version
+      debug:
+        msg: "✅ Ansible: {{ ansible_version.stdout_lines[0] }}"
+
+    # ── Final Summary ─────────────────────────────────────────────────────────
+
+    - name: Print all tool versions
+      debug:
+        msg:
+          - "========================================="
+          - "✅ All DevOps tools installed successfully"
+          - "========================================="
+          - "Docker:         {{ docker_version.stdout }}"
+          - "Docker Compose: {{ compose_version.stdout }}"
+          - "AWS CLI:        {{ aws_version.stdout }}"
+          - "Ansible:        {{ ansible_version.stdout_lines[0] }}"
+          - "========================================="

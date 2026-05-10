@@ -15,5 +15,5 @@ resource "aws_instance" "this" {
     Name = "${var.project_name}-app-${count.index + 1}"
     Role = "app"
   }
-  user_data_replace_on_change = true
+  
 }

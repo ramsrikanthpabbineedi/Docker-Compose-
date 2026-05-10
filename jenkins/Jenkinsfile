@@ -118,44 +118,49 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────────────
-        stage('Wait — Bootstrap Complete') {
-    steps {
-        sshagent(credentials: ['app-server-ssh']) {
-            sh """
-                echo "⏳ Waiting for user_data bootstrap to finish..."
-                for i in \$(seq 1 10); do
-                    echo "  Attempt \$i/10..."
-
-                    # Check the correct sentinel file
-                    RESULT=\$(ssh -o StrictHostKeyChecking=no \
-                                  -o ConnectTimeout=10 \
-                                  ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                                  'test -f /tmp/bootstrap_complete && echo done || echo waiting' 2>/dev/null || echo ssh_failed)
-
-                    echo "  Status: \$RESULT"
-
-                    if [ "\$RESULT" = "done" ]; then
-                        echo "✅ Bootstrap complete"
-                        exit 0
+        stage('Install Ansible') {
+            steps {
+                sh """
+                    # Install Ansible if not present
+                    if ! command -v ansible &> /dev/null; then
+                        echo "📦 Installing Ansible..."
+                        sudo apt-get update -y
+                        sudo apt-get install -y ansible
                     fi
-
-                    # Also print the bootstrap log so you can see progress
-                    ssh -o StrictHostKeyChecking=no \
-                        -o ConnectTimeout=10 \
-                        ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                        'tail -5 /var/log/user-data.log 2>/dev/null || echo log not ready yet' || true
-
-                    sleep 15
-                done
-                echo "❌ Bootstrap did not finish — printing full log..."
-                ssh -o StrictHostKeyChecking=no \
-                    ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                    'cat /var/log/user-data.log' || true
-                exit 1
-            """
+                    ansible --version
+                """
+            }
         }
+        
+        stage('Ansible Ping Test') {
+  steps {
+    echo "📡 Testing Ansible connectivity..."
+    withCredentials([sshUserPrivateKey(
+      credentialsId: 'app-server-ssh',
+      keyFileVariable: 'KEY'
+    )]) {
+      sh '''
+        echo "[web]" > inventory.ini
+        echo "localhost ansible_user=jenkins ansible_ssh_private_key_file=$KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory.ini
+        ansible -i inventory.ini web -m ping
+      '''
     }
+  }
+}
+
+stage('Ansible Configure Tools') {
+  steps {
+    echo "⚙️ Running Ansible Playbook..."
+    sh '''
+      echo "[web]"                        > inventory.ini
+      echo "localhost ansible_connection=local" >> inventory.ini
+
+      ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
+        --become \
+        -e "ansible_become_password=" \
+        -v
+    '''
+  }
 }
 
         // ──────────────────────────────────────────────────────
