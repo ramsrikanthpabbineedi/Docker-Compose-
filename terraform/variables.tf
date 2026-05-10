@@ -4,7 +4,7 @@ variable "aws_region"         {
      }
 variable "project_name"       { 
     type = string 
-     default = "myapp"
+     default = "my-app"
       }
 variable "ami_id"             { 
     type = string  
