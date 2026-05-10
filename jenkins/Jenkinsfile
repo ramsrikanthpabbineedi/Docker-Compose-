@@ -131,7 +131,7 @@ pipeline {
                             if ssh -o StrictHostKeyChecking=no \
                                    -o ConnectTimeout=10 \
                                    ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                                   'test -f /scripts/user_data.sh && echo done'; then
+                                   'test -f /tmp/bootstrap_complete && echo done'; then
                                 echo "✅ Bootstrap complete"
                                 exit 0
                             fi
