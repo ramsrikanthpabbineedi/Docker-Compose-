@@ -172,8 +172,7 @@
 
     - name: Print Ansible version
       debug:
-        msg: "✅ Ansible: {{ ansible_version.stdout_lines[0] }}"
-
+      msg: "✅ Ansible: {{ ansible_check.stdout_lines[0] }}"
     # ── Final Summary ─────────────────────────────────────────────────────────
 
     - name: Print all tool versions
