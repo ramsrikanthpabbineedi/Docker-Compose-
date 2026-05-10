@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Food My Life</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d0a08;
+      --surface: #1a1410;
+      --card: #221c16;
+      --border: #3a2e24;
+      --accent: #e8622a;
+      --accent2: #f5a623;
+      --gold: #c9984a;
+      --text: #f0e8dc;
+      --muted: #8a7560;
+      --success: #4caf7d;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── HERO ─── */
+    header {
+      position: relative;
+      background: linear-gradient(160deg, #1a0e06 0%, #0d0a08 60%);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      padding: 0 2rem;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 80% 50%, rgba(232,98,42,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(201,152,74,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 0;
+    }
+    .logo {
+      display: flex;
+      flex-direction: column;
+    }
+    .logo-main {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .logo-sub {
+      font-size: 0.7rem;
+      letter-spacing: 4px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .cart-btn {
+      position: relative;
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 0.6rem 1.4rem;
+      border-radius: 50px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cart-btn:hover { background: #d4541f; transform: translateY(-1px); }
+    .cart-count {
+      position: absolute;
+      top: -8px; right: -8px;
+      background: var(--accent2);
+      color: #111;
+      border-radius: 50%;
+      width: 20px; height: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ─── HERO BANNER ─── */
+    .hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 0 4rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: center;
+    }
+    .hero-text h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      color: var(--text);
+    }
+    .hero-text h1 span { color: var(--accent); }
+    .hero-text p {
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 500px;
+    }
+    .hero-badges {
+      display: flex;
+      gap: 0.7rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 0.35rem 0.9rem;
+      font-size: 0.78rem;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+    }
+    .hero-emoji {
+      font-size: 6rem;
+      line-height: 1;
+      filter: drop-shadow(0 8px 24px rgba(232,98,42,0.4));
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    /* ─── MAIN ─── */
+    main { max-width: 1200px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .section-subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ─── CATEGORIES ─── */
+    .categories { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .cat-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.5rem 1.1rem;
+      border-radius: 50px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-btn.active, .cat-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* ─── MENU GRID ─── */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    .menu-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+      position: relative;
+    }
+    .menu-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 12px 40px rgba(232,98,42,0.15);
+    }
+    .card-img {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4.5rem;
+      background: linear-gradient(135deg, #1e160e, #2a1e13);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, var(--card));
+    }
+    .card-tag {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: var(--accent);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      z-index: 1;
+    }
+    .card-tag.spicy { background: #c0392b; }
+    .card-tag.popular { background: var(--gold); color: #111; }
+    .card-body { padding: 1rem 1.2rem 1.2rem; }
+    .card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .card-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.8rem; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .card-price { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+    .card-price span { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+    .add-btn {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .add-btn:hover { background: #d4541f; transform: scale(1.05); }
+    .add-btn.added { background: var(--success); }
+    .qty-ctrl {
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .qty-btn {
+      background: var(--border);
+      border: none;
+      color: var(--text);
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .qty-btn:hover { background: var(--accent); }
+    .qty-num { font-weight: 700; min-width: 20px; text-align: center; }
+
+    /* ─── ORDER PANEL ─── */
+    .order-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-top: 1rem;
+    }
+    .order-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .order-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    @media(max-width: 700px) { .order-layout { grid-template-columns: 1fr; } }
+
+    .field-group { display: flex; flex-direction: column; gap: 1rem; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .field input, .field textarea {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 100px; }
+
+    /* Cart Summary */
+    .cart-summary { display: flex; flex-direction: column; gap: 0.7rem; }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      font-size: 0.9rem;
+    }
+    .cart-item-name { font-weight: 500; }
+    .cart-item-meta { color: var(--muted); font-size: 0.8rem; }
+    .cart-item-price { color: var(--accent2); font-weight: 700; }
+    .cart-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 0.8rem;
+      margin-top: 0.3rem;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .cart-total span:last-child { color: var(--accent2); font-size: 1.2rem; }
+
+    .order-btn {
+      width: 100%;
+      margin-top: 1.5rem;
+      background: linear-gradient(135deg, var(--accent), #c0441a);
+      border: none;
+      color: white;
+      padding: 1rem;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .order-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .order-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--success);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(.175,.885,.32,1.275);
+      z-index: 1000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: #c0392b; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.25s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin: 1rem 0 0.5rem; }
+    .modal p { color: var(--muted); line-height: 1.6; margin-bottom: 1.5rem; }
+    .modal-emoji { font-size: 3.5rem; }
+    .modal-close {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-main">My Food My Life</span>
+      <span class="logo-sub">Non-Veg Delights · Fresh &amp; Fast</span>
+    </div>
+    <button class="cart-btn" onclick="scrollToOrder()">
+      🛒 Cart <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+  <div class="hero">
+    <div class="hero-text">
+      <h1>Real Meat.<br/><span>Real Flavour.</span><br/>Delivered Hot.</h1>
+      <p>Hand-crafted non-veg dishes made with the freshest ingredients, straight from our kitchen to your door.</p>
+      <div class="hero-badges">
+        <span class="badge">🐔 Chicken</span>
+        <span class="badge">🐑 Mutton</span>
+        <span class="badge">🐟 Fish</span>
+        <span class="badge">🦐 Prawns</span>
+        <span class="badge">🥚 Egg</span>
+      </div>
+    </div>
+    <div class="hero-emoji">🍖</div>
+  </div>
+</header>
+
+<main>
+  <!-- MENU -->
+  <section style="padding-top:3rem">
+    <h2 class="section-title">Our Menu</h2>
+    <p class="section-subtitle">All items freshly prepared — no frozen cuts, ever.</p>
+
+    <div class="categories" id="categories">
+      <button class="cat-btn active" onclick="filterMenu('all', this)">All Items</button>
+      <button class="cat-btn" onclick="filterMenu('chicken', this)">🐔 Chicken</button>
+      <button class="cat-btn" onclick="filterMenu('mutton', this)">🐑 Mutton</button>
+      <button class="cat-btn" onclick="filterMenu('fish', this)">🐟 Fish</button>
+      <button class="cat-btn" onclick="filterMenu('prawn', this)">🦐 Prawns</button>
+      <button class="cat-btn" onclick="filterMenu('egg', this)">🥚 Egg</button>
+    </div>
+
+    <div class="menu-grid" id="menuGrid"></div>
+  </section>
+
+  <!-- ORDER SECTION -->
+  <section class="order-section" id="orderSection">
+    <h2>📋 Place Your Order</h2>
+    <div class="order-layout">
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem;color:var(--gold)">Your Details</h3>
+        <div class="field-group">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="custName" placeholder="e.g. Ravi Kumar" />
+          </div>
+          <div class="field">
+            <label>Mobile Number</label>
+            <input type="tel" id="custPhone" placeholder="e.g. 9876543210" maxlength="10" />
+          </div>
+          <div class="field">
+            <label>Delivery Address</label>
+            <textarea id="custAddress" placeholder="House/Flat No., Street, Area, City, Pincode"></textarea>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem;color:var(--gold)">Order Summary</h3>
+        <div class="cart-summary" id="cartSummary">
+          <div class="cart-empty">🛒 No items added yet.<br/>Select from the menu above.</div>
+        </div>
+        <button class="order-btn" id="orderBtn" onclick="placeOrder()" disabled>
+          🚀 Confirm &amp; Place Order
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>© 2024 My Food My Life · Made with ❤️ and a lot of spice</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-emoji">🎉</div>
+    <h3>Order Placed!</h3>
+    <p>Your order has been received. We'll start cooking immediately and deliver hot to your doorstep!</p>
+    <button class="modal-close" onclick="closeModal()">Great, Thanks!</button>
+  </div>
+</div>
+
+<script>
+const MENU = [
+  { id:1, name:"Chicken Biryani", emoji:"🍛", price:220, category:"chicken", desc:"Aromatic basmati rice layered with juicy chicken pieces and whole spices.", tag:"popular" },
+  { id:2, name:"Butter Chicken", emoji:"🍗", price:200, category:"chicken", desc:"Tender chicken in a rich, creamy tomato-butter gravy. A timeless classic.", tag:"popular" },
+  { id:3, name:"Chicken 65", emoji:"🌶️", price:160, category:"chicken", desc:"Crispy deep-fried chicken marinated in bold South Indian spices.", tag:"spicy" },
+  { id:4, name:"Chicken Kebab", emoji:"🍢", price:180, category:"chicken", desc:"Minced chicken skewers grilled over charcoal with herbs and spices.", tag:"" },
+  { id:5, name:"Mutton Curry", emoji:"🥘", price:280, category:"mutton", desc:"Slow-cooked mutton in a robust spiced gravy — pure comfort food.", tag:"popular" },
+  { id:6, name:"Mutton Biryani", emoji:"🍛", price:300, category:"mutton", desc:"Dum-cooked biryani with succulent mutton pieces and saffron.", tag:"popular" },
+  { id:7, name:"Mutton Keema", emoji:"🍲", price:260, category:"mutton", desc:"Spiced minced mutton cooked with peas, tomatoes, and garam masala.", tag:"" },
+  { id:8, name:"Fish Fry", emoji:"🐟", price:190, category:"fish", desc:"Freshwater fish marinated in turmeric, chilli, and masala, pan-fried crisp.", tag:"spicy" },
+  { id:9, name:"Fish Curry", emoji:"🍜", price:210, category:"fish", desc:"Tangy coconut-based curry with fresh fish. Goes best with steamed rice.", tag:"" },
+  { id:10, name:"Prawn Masala", emoji:"🦐", price:290, category:"prawn", desc:"Juicy prawns tossed in a fiery onion-tomato masala with coastal spices.", tag:"spicy" },
+  { id:11, name:"Prawn Biryani", emoji:"🍛", price:310, category:"prawn", desc:"Flavour-packed biryani with large prawns layered with fragrant rice.", tag:"popular" },
+  { id:12, name:"Egg Curry", emoji:"🥚", price:120, category:"egg", desc:"Boiled eggs simmered in a spiced masala gravy. Simple and soul-satisfying.", tag:"" },
+  { id:13, name:"Egg Bhurji", emoji:"🍳", price:100, category:"egg", desc:"Scrambled eggs cooked with onions, tomatoes, and green chillies.", tag:"" },
+  { id:14, name:"Chicken Pepper Fry", emoji:"🌶️", price:210, category:"chicken", desc:"Bone-in chicken sautéed with crushed peppercorns and curry leaves.", tag:"spicy" },
+  { id:15, name:"Mutton Seekh Kebab", emoji:"🍢", price:270, category:"mutton", desc:"Spiced minced mutton rolled on skewers and grilled to smoky perfection.", tag:"" },
+];
+
+let cart = {};
+let currentFilter = 'all';
+
+function renderMenu(filter = 'all') {
+  const grid = document.getElementById('menuGrid');
+  const items = filter === 'all' ? MENU : MENU.filter(i => i.category === filter);
+  grid.innerHTML = items.map(item => {
+    const qty = cart[item.id]?.qty || 0;
+    return `
+    <div class="menu-card" data-cat="${item.category}" id="card-${item.id}">
+      <div class="card-img">
+        ${item.tag ? `<span class="card-tag ${item.tag}">${item.tag}</span>` : ''}
+        <span style="position:relative;z-index:0">${item.emoji}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${item.name}</div>
+        <div class="card-desc">${item.desc}</div>
+        <div class="card-footer">
+          <div class="card-price">₹${item.price} <span>per plate</span></div>
+          ${qty === 0
+            ? `<button class="add-btn" onclick="addItem(${item.id})">+ Add</button>`
+            : `<div class="qty-ctrl">
+                <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+                <span class="qty-num">${qty}</span>
+                <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+              </div>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterMenu(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMenu(cat);
+}
+
+function addItem(id) {
+  const item = MENU.find(i => i.id === id);
+  cart[id] = { ...item, qty: 1 };
+  updateCart();
+  renderMenu(currentFilter);
+  showToast(`${item.name} added to cart!`);
+}
+
+function changeQty(id, delta) {
+  if (!cart[id]) return;
+  cart[id].qty += delta;
+  if (cart[id].qty <= 0) delete cart[id];
+  updateCart();
+  renderMenu(currentFilter);
+}
+
+function updateCart() {
+  const count = Object.values(cart).reduce((s, i) => s + i.qty, 0);
+  document.getElementById('cartCount').textContent = count;
+  const summary = document.getElementById('cartSummary');
+  const items = Object.values(cart);
+  if (items.length === 0) {
+    summary.innerHTML = '<div class="cart-empty">🛒 No items added yet.<br/>Select from the menu above.</div>';
+    document.getElementById('orderBtn').disabled = true;
+    return;
+  }
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  summary.innerHTML = items.map(i => `
+    <div class="cart-item">
+      <div>
+        <div class="cart-item-name">${i.emoji} ${i.name}</div>
+        <div class="cart-item-meta">Qty: ${i.qty}</div>
+      </div>
+      <div class="cart-item-price">₹${i.price * i.qty}</div>
+    </div>
+  `).join('') + `
+    <div class="cart-total"><span>Total</span><span>₹${total}</span></div>
+  `;
+  document.getElementById('orderBtn').disabled = false;
+}
+
+async function placeOrder() {
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+
+  if (!name) return showToast('Please enter your name.', true);
+  if (!/^\d{10}$/.test(phone)) return showToast('Enter a valid 10-digit mobile number.', true);
+  if (!address) return showToast('Please enter your delivery address.', true);
+  if (Object.keys(cart).length === 0) return showToast('Your cart is empty!', true);
+
+  const orderBtn = document.getElementById('orderBtn');
+  orderBtn.disabled = true;
+  orderBtn.textContent = '⏳ Placing Order...';
+
+  const payload = {
+    customer: { name, phone, address },
+    items: Object.values(cart).map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
+    total: Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0)
+  };
+
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      cart = {};
+      updateCart();
+      document.getElementById('custName').value = '';
+      document.getElementById('custPhone').value = '';
+      document.getElementById('custAddress').value = '';
+      renderMenu(currentFilter);
+      document.getElementById('modalOverlay').classList.add('open');
+    } else {
+      showToast(data.message || 'Order failed. Try again.', true);
+    }
+  } catch (e) {
+    showToast('Could not reach server. Check your connection.', true);
+  } finally {
+    orderBtn.disabled = false;
+    orderBtn.innerHTML = '🚀 Confirm &amp; Place Order';
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function scrollToOrder() {
+  document.getElementById('orderSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+let toastTimer;
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Init
+renderMenu();
+</script>
+</body>
+</html>

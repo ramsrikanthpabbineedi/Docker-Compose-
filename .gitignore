@@ -1,0 +1,27 @@
+.env
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Docker
+*.tar
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+
+# Jenkins
+workspace/
+
+# OS
+.DS_Store

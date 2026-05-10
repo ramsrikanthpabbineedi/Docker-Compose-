@@ -1,0 +1,387 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION      = 'eu-north-1'
+        PROJECT_NAME    = 'myapp'
+        APP_DIR         = '/opt/myapp'
+        SSH_USER        = 'ubuntu'
+
+        // Stored in Jenkins Credentials as "Secret text"
+        AWS_ACCOUNT_ID  = credentials('aws-account-id')
+    }
+
+    stages {
+
+        // ──────────────────────────────────────────────────────
+        stage('Git Clone') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo "📦 Checking out source code..."
+
+                git branch: 'main',
+                    url: 'https://github.com/ramsrikanthpabbineedi/Docker-Compose.git',
+                    credentialsId: 'github-pat'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Terraform Init') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                dir('terraform') {
+                    withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+                        sh 'terraform init -input=false'
+                    }
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Terraform Plan') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                dir('terraform') {
+                    withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+                        sh 'terraform plan -out=tfplan -input=false'
+                    }
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Terraform Apply') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                dir('terraform') {
+
+                    withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+
+                        sh 'terraform apply -auto-approve -input=false tfplan'
+
+                        // Capture outputs for downstream stages
+                        script {
+
+                            try {
+
+                                env.EC2_PUBLIC_IP = sh(
+                                    script: 'terraform output -raw public_ip',
+                                    returnStdout: true
+                                ).trim()
+
+                                env.EC2_INSTANCE_ID = sh(
+                                    script: 'terraform output -raw instance_id',
+                                    returnStdout: true
+                                ).trim()
+
+                                // Validate outputs exist
+                                if (!env.EC2_PUBLIC_IP || !env.EC2_INSTANCE_ID) {
+
+                                    error("❌ Terraform outputs are missing or empty. Ensure terraform has 'public_ip' and 'instance_id' outputs.")
+                                }
+
+                            } catch (Exception e) {
+
+                                error("❌ Failed to retrieve Terraform outputs: ${e.message}")
+                            }
+                        }
+                    }
+                }
+
+                echo "✅ EC2 IP: ${env.EC2_PUBLIC_IP} | Instance: ${env.EC2_INSTANCE_ID}"
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Wait — EC2 Status Checks') {
+        // ──────────────────────────────────────────────────────
+            steps {
+
+                withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+
+                    sh """
+                        echo "⏳ Waiting for EC2 status checks (2/2)..."
+
+                        aws ec2 wait instance-status-ok \
+                            --region ${AWS_REGION} \
+                            --instance-ids ${env.EC2_INSTANCE_ID}
+
+                        echo "✅ Status checks passed on \$(date)"
+                    """
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Wait — SSH Accessible') {
+        // ──────────────────────────────────────────────────────
+            steps {
+
+                sshagent(credentials: ['app-server-ssh']) {
+
+                    sh """
+                        echo "⏳ Waiting for SSH on ${env.EC2_PUBLIC_IP}..."
+
+                        for i in \$(seq 1 30); do
+
+                            if ssh -o StrictHostKeyChecking=no \
+                                   -o ConnectTimeout=5 \
+                                   -o BatchMode=yes \
+                                   ${SSH_USER}@${env.EC2_PUBLIC_IP} 'echo ready' 2>/dev/null; then
+
+                                echo "✅ SSH is up at \$(date)"
+                                exit 0
+                            fi
+
+                            echo "Attempt \$i/30 — sleeping 10s..."
+                            sleep 10
+
+                        done
+
+                        echo "❌ SSH did not become available in time"
+                        exit 1
+                    """
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Wait — Bootstrap Complete') {
+        // ──────────────────────────────────────────────────────
+            steps {
+
+                sshagent(credentials: ['app-server-ssh']) {
+
+                    sh """
+                        echo "⏳ Waiting for user_data bootstrap to finish..."
+
+                        for i in \$(seq 1 40); do
+
+                            if ssh -o StrictHostKeyChecking=no \
+                                   -o ConnectTimeout=10 \
+                                   ${SSH_USER}@${env.EC2_PUBLIC_IP} \
+                                   'test -f /tmp/bootstrap_complete' 2>/dev/null; then
+
+                                echo "✅ Bootstrap complete at \$(date)"
+                                exit 0
+                            fi
+
+                            echo "Attempt \$i/40 — sleeping 15s..."
+                            sleep 15
+
+                        done
+
+                        echo "❌ Bootstrap did not finish in time"
+                        exit 1
+                    """
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Build Images') {
+        // ──────────────────────────────────────────────────────
+            steps {
+
+                sh 'docker compose build'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Push to Registry') {
+        // ──────────────────────────────────────────────────────
+            when {
+                branch 'main'
+            }
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker compose push
+                    '''
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Deploy Application') {
+        // ──────────────────────────────────────────────────────
+            when {
+                branch 'main'
+            }
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sshagent(credentials: ['app-server-ssh']) {
+
+                        sh """
+                            echo "🚀 Deploying to ${env.EC2_PUBLIC_IP}..."
+
+                            # Copy docker-compose.yml
+                            scp -o StrictHostKeyChecking=no \
+                                docker-compose.yml \
+                                ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/docker-compose.yml
+
+                            # Copy .env if exists
+                            if [ -f .env ]; then
+                                scp -o StrictHostKeyChecking=no \
+                                    .env \
+                                    ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/.env
+                            fi
+
+                            # Deploy containers
+                            ssh -o StrictHostKeyChecking=no \
+                                ${SSH_USER}@${env.EC2_PUBLIC_IP} "
+                                
+                                set -euo pipefail
+
+                                cd ${APP_DIR}
+
+                                echo \\"${DOCKER_PASS}\\" | docker login -u \\"${DOCKER_USER}\\" --password-stdin
+
+                                docker compose pull
+                                docker compose up -d --remove-orphans
+                                docker image prune -f
+
+                                echo 'Containers running:'
+
+                                docker compose ps
+                            "
+
+                            echo "✅ Deployment complete at \$(date)"
+                        """
+                    }
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('Health Check') {
+        // ──────────────────────────────────────────────────────
+            when {
+                branch 'main'
+            }
+
+            steps {
+
+                sh """
+                    echo "🔍 Running health check..."
+
+                    for i in \$(seq 1 12); do
+
+                        if curl -sf --max-time 5 http://${env.EC2_PUBLIC_IP}/health 2>/dev/null | grep -qE "ok|healthy|up"; then
+
+                            echo "✅ App is healthy"
+                            exit 0
+                        fi
+
+                        echo "Attempt \$i/12 — sleeping 10s..."
+                        sleep 10
+
+                    done
+
+                    echo "❌ Health check failed after 2 minutes"
+                    exit 1
+                """
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    post {
+    // ──────────────────────────────────────────────────────────
+
+        always {
+
+            script {
+
+                if (env.EC2_PUBLIC_IP) {
+
+                    sshagent(credentials: ['app-server-ssh']) {
+
+                        sh """
+                            echo "📋 Bootstrap logs from ${env.EC2_PUBLIC_IP}:"
+
+                            ssh -o StrictHostKeyChecking=no \
+                                ${SSH_USER}@${env.EC2_PUBLIC_IP} \
+                                'cat /var/log/bootstrap.log 2>/dev/null || echo "Log file not found"' || true
+                        """
+                    }
+                }
+            }
+        }
+
+        success {
+
+            script {
+
+                withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+
+                    sh """
+                        echo "✅ Build successful, sending notification..."
+
+                        TOPIC=\$(aws sns list-topics \
+                            --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
+                            --output text)
+
+                        if [ -z "\$TOPIC" ]; then
+                            echo "⚠️ SNS topic not found"
+                            exit 0
+                        fi
+
+                        aws sns publish \
+                            --region ${AWS_REGION} \
+                            --topic-arn "\$TOPIC" \
+                            --subject "✅ Deploy success: ${JOB_NAME} #${BUILD_NUMBER}" \
+                            --message "Build ${BUILD_URL} deployed successfully to ${env.EC2_PUBLIC_IP}"
+                    """
+                }
+            }
+        }
+
+        failure {
+
+            script {
+
+                withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+
+                    sh """
+                        echo "❌ Build failed, sending notification..."
+
+                        TOPIC=\$(aws sns list-topics \
+                            --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
+                            --output text)
+
+                        if [ -z "\$TOPIC" ]; then
+                            echo "⚠️ SNS topic not found"
+                            exit 0
+                        fi
+
+                        aws sns publish \
+                            --region ${AWS_REGION} \
+                            --topic-arn "\$TOPIC" \
+                            --subject "❌ Deploy failed: ${JOB_NAME} #${BUILD_NUMBER}" \
+                            --message "See ${BUILD_URL} — check bootstrap.log for provisioning errors"
+                    """
+                }
+            }
+        }
+    }
+}
