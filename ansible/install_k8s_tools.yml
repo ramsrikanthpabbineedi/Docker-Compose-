@@ -153,26 +153,6 @@
    
     # ── Ansible ───────────────────────────────────────────────────────────────
 
-    - name: Check if Ansible is installed
-      command: ansible --version
-      register: ansible_check
-      ignore_errors: true
-      changed_when: false
-
-    - name: Install Ansible
-      apt:
-        name: ansible
-        state: present
-      when: ansible_check.rc != 0
-
-    - name: Verify Ansible installation
-      command: ansible --version
-      register: ansible_check
-      changed_when: false
-
-    - name: Print Ansible version
-      debug:
-      msg: "✅ Ansible: {{ ansible_check.stdout_lines[0] }}"
     # ── Final Summary ─────────────────────────────────────────────────────────
 
     - name: Print all tool versions
@@ -184,5 +164,4 @@
           - "Docker:         {{ docker_version.stdout }}"
           - "Docker Compose: {{ compose_version.stdout }}"
           - "AWS CLI:        {{ aws_version.stdout }}"
-          - "Ansible:        {{ ansible_version.stdout_lines[0] }}"
           - "========================================="
