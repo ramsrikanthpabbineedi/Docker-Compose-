@@ -118,28 +118,35 @@ pipeline {
             }
         }
         stage('Ansible Ping Test') {
-            steps {
-                echo "📡 Testing Ansible connectivity to EC2..."
-                sh """
-                # Copy key to safe path (no spaces)
-                cp \$HOME/.ssh/myapp /tmp/ansible_key 2>/dev/null || true
-                chmod 600 /tmp/ansible_key
-                
+    steps {
+        echo "📡 Testing Ansible connectivity to EC2..."
+        sshagent(credentials: ['app-server-ssh']) {
+            sh """
+                # Get the key file from sshagent — no path issues
+                SSH_KEY=\$(ssh-agent -s | grep SSH_AUTH_SOCK | cut -d= -f2 | cut -d';' -f1)
+
+                # Write key directly from Jenkins credentials to a safe path
+                mkdir -p /tmp/ansible
+                cat \$SSH_AUTH_SOCK > /tmp/ansible/key 2>/dev/null || true
+
+                # Better approach — write inventory pointing to sshagent socket
                 cat > inventory.ini << EOF
-                [appservers]
-                ${env.EC2_PUBLIC_IP} ansible_user=ubuntu ansible_ssh_private_key_file=/tmp/ansible_key
-                [appservers:vars]
-                ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=10'
-                EOF
+[appservers]
+${env.EC2_PUBLIC_IP} ansible_user=ubuntu
 
-            echo "=== Inventory ==="
-            cat inventory.ini
+[appservers:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=10'
+EOF
 
-            ansible -i inventory.ini appservers -m ping
-        """
+                echo "=== Inventory ==="
+                cat inventory.ini
+
+                # Test ping using sshagent (key is loaded automatically)
+                ansible -i inventory.ini appservers -m ping
+            """
+        }
     }
 }
-
         // ──────────────────────────────────────────────────────
         stage('Build Images') {
         // ──────────────────────────────────────────────────────
