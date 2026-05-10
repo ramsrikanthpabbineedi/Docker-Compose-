@@ -13,3 +13,7 @@ value = module.ec2_app.public_ip
 output "instance_id" {
 value = one(module.ec2_app.instance_ids)
 }
+output "topic_arn" {
+  value= module.sns.value.sns_topic_arn
+
+}
