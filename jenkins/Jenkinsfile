@@ -50,28 +50,32 @@ pipeline {
 
         // ──────────────────────────────────────────────────────
         stage('Terraform Apply') {
-        // ──────────────────────────────────────────────────────
-            steps {
-                dir('terraform') {
-                    withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
-                        sh 'terraform apply -auto-approve -input=false tfplan'
+    steps {
+        dir('terraform') {
+            withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+                sh 'terraform apply -auto-approve -input=false tfplan'
 
-                        // Capture outputs for downstream stages
-                        script {
-                            env.EC2_PUBLIC_IP  = sh(
-                                script: 'terraform output -raw public_ip',
-                                returnStdout: true
-                            ).trim()
-                            env.EC2_INSTANCE_ID = sh(
-                                script: 'terraform output -raw instance_id',
-                                returnStdout: true
-                            ).trim()
-                        }
-                    }
+                script {
+                    env.EC2_PUBLIC_IP   = sh(
+                        script: 'terraform output -raw public_ip',
+                        returnStdout: true
+                    ).trim()
+                    env.EC2_INSTANCE_ID = sh(
+                        script: 'terraform output -raw instance_id',
+                        returnStdout: true
+                    ).trim()
+                    // ✅ Add this line
+                    env.SNS_TOPIC_ARN   = sh(
+                        script: 'terraform output -raw sns_topic_arn',
+                        returnStdout: true
+                    ).trim()
                 }
-                echo "✅ EC2 IP: ${env.EC2_PUBLIC_IP} | Instance: ${env.EC2_INSTANCE_ID}"
             }
         }
+        echo "✅ EC2 IP: ${env.EC2_PUBLIC_IP} | Instance: ${env.EC2_INSTANCE_ID}"
+        echo "✅ SNS ARN: ${env.SNS_TOPIC_ARN}"
+    }
+}
       
 
         // ──────────────────────────────────────────────────────
