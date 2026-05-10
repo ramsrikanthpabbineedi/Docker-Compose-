@@ -25,3 +25,6 @@ workspace/
 
 # OS
 .DS_Store
+
+my-app
+my-app.pub
