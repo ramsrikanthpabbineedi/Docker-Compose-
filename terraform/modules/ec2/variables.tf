@@ -3,6 +3,7 @@ variable "project_name"          {
     }
 variable "ami_id"                {
      type = string 
+     default = "ami-05d62b9bc5a6ca605"
      }
 variable "instance_type"         {
      type = string 
