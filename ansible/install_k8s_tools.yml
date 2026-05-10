@@ -167,7 +167,7 @@
 
     - name: Verify Ansible installation
       command: ansible --version
-      register: ansible_version
+      register: ansible_check
       changed_when: false
 
     - name: Print Ansible version
