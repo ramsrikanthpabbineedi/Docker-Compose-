@@ -147,15 +147,19 @@ EOF
         }
     }
 }
-stage('Ansible — Install Docker + Deploy') {
-    steps {
-        echo "⚙️ Running Ansible playbook on EC2..."
-        sh """
-            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml\
-                --private-key /var/lib/jenkins/.ssh/myapp \
-                -v
-        """
-    }
+stage('Ansible Configure Tools') {
+  steps {
+    echo "⚙️ Running Ansible Playbook..."
+    sh '''
+      echo "[web]"                        > inventory.ini
+      echo "localhost ansible_connection=local" >> inventory.ini
+
+      ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
+        --become \
+        -e "ansible_become_password=" \
+        -v
+    '''
+  }
 }
         // ──────────────────────────────────────────────────────
         stage('Build Images') {
