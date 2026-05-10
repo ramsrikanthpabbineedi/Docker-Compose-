@@ -117,20 +117,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Install Ansible') {
-            steps {
-                sh """
-                    # Install Ansible if not present
-                    if ! command -v ansible &> /dev/null; then
-                        echo "📦 Installing Ansible..."
-                        sudo apt-get update -y
-                        sudo apt-get install -y ansible
-                    fi
-                    ansible --version
-                """
-            }
-        }
         
         stage('Ansible Ping Test') {
   steps {
