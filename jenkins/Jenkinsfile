@@ -148,18 +148,21 @@ EOF
     }
 }
 stage('Ansible Configure Tools') {
-  steps {
-    echo "⚙️ Running Ansible Playbook..."
-    sh '''
-      echo "[web]"                        > inventory.ini
-      echo "localhost ansible_connection=local" >> inventory.ini
+    steps {
+        echo "⚙️ Running Ansible Playbook..."
+        sh '''
+            cat > inventory.ini << 'EOF'
+[web]
+localhost ansible_connection=local
+EOF
 
-      ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
-        --become \
-        -e "ansible_become_password=" \
-        -v
-    '''
-  }
+            # Fix 1: correct playbook filename
+            # Fix 2: remove ansible_become_password= (empty password breaks sudo)
+            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
+                --become \
+                -v
+        '''
+    }
 }
         // ──────────────────────────────────────────────────────
         stage('Build Images') {
