@@ -8,6 +8,7 @@ pipeline {
         SSH_USER        = 'ubuntu'
         // Stored in Jenkins Credentials as "Secret text"
         AWS_ACCOUNT_ID  = credentials('aws-account-id')
+        COMPOSE_FILE    = 'docker-compose.yml'
     }
 
     stages {
@@ -165,12 +166,11 @@ EOF
     }
 }
         // ──────────────────────────────────────────────────────
-        stage('Build Images') {
-        // ──────────────────────────────────────────────────────
-            steps {
-                sh 'docker compose build'
-            }
-        }
+       stage('Build Images') {
+    steps {
+        sh 'docker compose -f ${COMPOSE_FILE} build'
+    }
+}
 
         // ──────────────────────────────────────────────────────
         stage('Push to Registry') {
