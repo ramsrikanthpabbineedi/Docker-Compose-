@@ -151,7 +151,7 @@ stage('Ansible — Install Docker + Deploy') {
     steps {
         echo "⚙️ Running Ansible playbook on EC2..."
         sh """
-            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
+            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml\
                 --private-key /var/lib/jenkins/.ssh/myapp \
                 -v
         """
