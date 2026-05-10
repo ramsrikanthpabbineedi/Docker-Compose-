@@ -1,6 +1,6 @@
 variable "aws_region"         { 
     type = string 
-     default = "us-east-1" 
+     default = "eu-north-1" 
      }
 variable "project_name"       { 
     type = string 
@@ -8,7 +8,7 @@ variable "project_name"       {
       }
 variable "ami_id"             { 
     type = string  
-    default = "ami-067bcf851477ebb78"
+    default = "ami-05d62b9bc5a6ca605"
      }
 variable "app_instance_type"  {
      type = string
