@@ -32,5 +32,8 @@ aws sns publish --region ${aws_region} --topic-arn ${sns_topic} \
   --message "App running on $PUBLIC_IP"
 
 # ✅ ADD THIS — signals Jenkins that bootstrap is done
+# last 3 lines of bootstrap.sh
+  --message "App running on $PUBLIC_IP"
+
 touch /tmp/bootstrap_complete
 echo "=== Bootstrap finished at $(date) ==="

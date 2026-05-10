@@ -124,8 +124,8 @@ pipeline {
         sshagent(credentials: ['app-server-ssh']) {
             sh """
                 echo "⏳ Waiting for user_data bootstrap to finish..."
-                for i in \$(seq 1 40); do
-                    echo "  Attempt \$i/40..."
+                for i in \$(seq 1 10); do
+                    echo "  Attempt \$i/10..."
 
                     # Check the correct sentinel file
                     RESULT=\$(ssh -o StrictHostKeyChecking=no \

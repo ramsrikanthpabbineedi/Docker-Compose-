@@ -15,7 +15,12 @@ resource "aws_instance" "this" {
     Name = "${var.project_name}-app-${count.index + 1}"
     Role = "app"
   }
-
-    user_data_replace_on_change = true
+user_data = templatefile("${path.module}/tmp/bootstrap.sh", {
+  project_name = var.project_name
+  aws_region   = var.aws_region
+  sns_topic    = var.sns_topic_arn
+})
+user_data_replace_on_change = true
+   
 
 }
