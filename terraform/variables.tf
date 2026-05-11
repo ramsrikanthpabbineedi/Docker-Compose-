@@ -12,7 +12,7 @@ variable "ami_id"             {
      }
 variable "app_instance_type"  {
      type = string
-       default = "t2.micro"
+       default = "t3.micro"
         }
 variable "app_instance_count"{
      type = number 
