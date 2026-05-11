@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "myapp-tfstate-kavya-2024"   # From bootstrap output
+    bucket         = "myapp-tfstate-kavya-2025"   # From bootstrap output
     key            = "myapp/prod/terraform.tfstate"
     region         = "eu-north-1"
     
