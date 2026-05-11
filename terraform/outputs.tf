@@ -13,6 +13,3 @@ value = module.ec2_app.public_ip
 output "instance_id" {
 value = one(module.ec2_app.instance_ids)
 }
-output "topic_arn" {
-  value = aws_sns_topic.this.arn
-}
