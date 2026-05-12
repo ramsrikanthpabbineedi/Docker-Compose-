@@ -221,34 +221,31 @@ stage('Deploy Application') {
             usernameVariable: 'DOCKER_USER',
             passwordVariable: 'DOCKER_PASS')]) {
             sshagent(credentials: ['app-server-ssh']) {
-                sh """
-                    echo "🚀 Deploying to ${env.EC2_PUBLIC_IP}..."
+                sh '''
+                    EC2_IP="''' + env.EC2_PUBLIC_IP + '''"
+                    echo "🚀 Deploying to $EC2_IP..."
 
-                    # Ensure app dir exists on EC2
-                    ssh -o StrictHostKeyChecking=no ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                        'mkdir -p ${APP_DIR}'
+                    # Create app dir with sudo on EC2
+                    ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
+                        "sudo mkdir -p /opt/myapp && sudo chown ubuntu:ubuntu /opt/myapp"
 
                     # Copy compose file and .env to EC2
                     scp -o StrictHostKeyChecking=no \
                         app/docker-compose.yml \
-                        ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/docker-compose.yml
+                        ubuntu@$EC2_IP:/opt/myapp/docker-compose.yml
 
                     scp -o StrictHostKeyChecking=no \
                         app/.env \
-                        ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/.env
+                        ubuntu@$EC2_IP:/opt/myapp/.env
 
-                    # Deploy on EC2
-                    ssh -o StrictHostKeyChecking=no ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                        DOCKER_USER="${DOCKER_USER}" \
-                        DOCKER_PASS="${DOCKER_PASS}" \
-                        APP_DIR="${APP_DIR}" \
-                        'bash -s' << 'REMOTE'
+                    # Deploy on EC2 — pass credentials as env vars safely
+                    ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
+                        "DOCKER_USER=$DOCKER_USER DOCKER_PASS=$DOCKER_PASS bash -s" << 'REMOTE'
                             set -euo pipefail
-                            cd \$APP_DIR
+                            cd /opt/myapp
 
-                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                            # Update image names in compose to use registry images
                             docker compose pull
                             docker compose up -d --remove-orphans
                             docker image prune -f
@@ -258,7 +255,7 @@ stage('Deploy Application') {
 REMOTE
 
                     echo "✅ Deployment complete"
-                """
+                '''
             }
         }
     }
