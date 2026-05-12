@@ -4,11 +4,11 @@ module "vpc" {
 }
 
 module "security" {
-  source             = "./modules/security"
-  project_name       = var.project_name
-  vpc_id             = module.vpc.vpc_id
-  app_port           = var.app_port
-  
+  source       = "./modules/security"
+  project_name = var.project_name
+  vpc_id       = module.vpc.vpc_id
+  app_port     = var.app_port
+
 }
 
 module "keypair" {
@@ -63,7 +63,7 @@ module "ec2_app" {
   instance_profile_name = module.iam_app.instance_profile_name
   sns_topic_arn         = module.sns.topic_arn
   aws_region            = var.aws_region
-  public_ip = true
+  public_ip             = true
 
 }
 
