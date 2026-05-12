@@ -165,3 +165,19 @@
           - "Docker Compose: {{ compose_version.stdout }}"
           - "AWS CLI:        {{ aws_version.stdout }}"
           - "========================================="
+          
+          # ── System Update ─────────────────────────────────────────────────────────
+- name: Remove broken apt repositories
+  shell: |
+    add-apt-repository --remove ppa:ansible/ansible -y 2>/dev/null || true
+    rm -f /etc/apt/sources.list.d/ansible-ubuntu-ansible-*.list
+  changed_when: false
+
+- name: Update apt package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  register: apt_update
+  retries: 3
+  delay: 5
+  until: apt_update is succeeded
