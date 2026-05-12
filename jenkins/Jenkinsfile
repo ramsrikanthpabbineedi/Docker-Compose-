@@ -253,11 +253,10 @@ stage('Deploy Application') {
                     EC2_IP="''' + env.EC2_PUBLIC_IP + '''"
                     echo "🚀 Deploying to $EC2_IP..."
 
-                    # Create app dir with sudo on EC2
                     ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
-                        "sudo mkdir -p /opt/myapp && sudo chown ubuntu:ubuntu /opt/myapp"
+                        "sudo mkdir -p /opt/myapp/nginx && sudo chown -R ubuntu:ubuntu /opt/myapp"
 
-                    # Copy compose file and .env to EC2
+                    # Copy compose file, .env AND nginx config
                     scp -o StrictHostKeyChecking=no \
                         app/docker-compose.yml \
                         ubuntu@$EC2_IP:/opt/myapp/docker-compose.yml
@@ -266,7 +265,11 @@ stage('Deploy Application') {
                         app/.env \
                         ubuntu@$EC2_IP:/opt/myapp/.env
 
-                    # Deploy on EC2 — pass credentials as env vars safely
+                    scp -o StrictHostKeyChecking=no \
+                        app/nginx/nginx.conf \
+                        ubuntu@$EC2_IP:/opt/myapp/nginx/nginx.conf
+
+                    # Deploy on EC2
                     ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
                         "DOCKER_USER=$DOCKER_USER DOCKER_PASS=$DOCKER_PASS bash -s" << 'REMOTE'
                             set -euo pipefail
@@ -288,7 +291,6 @@ REMOTE
         }
     }
 }
-
 stage('Health Check') {
     steps {
         sh '''
