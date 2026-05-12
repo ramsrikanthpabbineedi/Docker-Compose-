@@ -213,6 +213,40 @@ EOF
         }
     }
 }
+stage('Setup EC2 — Install Docker') {
+    steps {
+        sshagent(credentials: ['app-server-ssh']) {
+            sh '''
+                EC2_IP="''' + env.EC2_PUBLIC_IP + '''"
+                echo "🐳 Installing Docker on $EC2_IP..."
+
+                ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
+                    "bash -s" << 'REMOTE'
+                        set -euo pipefail
+
+                        # Skip if already installed
+                        if command -v docker &>/dev/null; then
+                            echo "✅ Docker already installed: $(docker --version)"
+                            exit 0
+                        fi
+
+                        echo "📦 Installing Docker..."
+                        curl -fsSL https://get.docker.com | sudo sh
+
+                        sudo usermod -aG docker ubuntu
+
+                        sudo apt-get install -y docker-compose-plugin
+
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+
+                        echo "✅ Docker installed: $(sudo docker --version)"
+REMOTE
+                echo "✅ EC2 Docker setup complete"
+            '''
+        }
+    }
+}
 
 stage('Deploy Application') {
     steps {
