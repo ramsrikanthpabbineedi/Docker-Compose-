@@ -203,8 +203,10 @@ EOF
             passwordVariable: 'DOCKER_PASS')]) {
             sh '''
                 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                docker tag myfoodmylife-backend:latest $DOCKER_USER/myfoodmylife-backend:latest
+
+                docker tag myfoodmylife-backend:latest  $DOCKER_USER/myfoodmylife-backend:latest
                 docker tag myfoodmylife-frontend:latest $DOCKER_USER/myfoodmylife-frontend:latest
+
                 docker push $DOCKER_USER/myfoodmylife-backend:latest
                 docker push $DOCKER_USER/myfoodmylife-frontend:latest
             '''
@@ -212,70 +214,73 @@ EOF
     }
 }
 
-        // ──────────────────────────────────────────────────────
-        stage('Deploy Application') {
-        // ──────────────────────────────────────────────────────
-            when { branch 'main' }
-            steps {
-                sshagent(credentials: ['app-server-ssh']) {
-                    sh """
-                        echo "🚀 Deploying to ${env.EC2_PUBLIC_IP}..."
+stage('Deploy Application') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS')]) {
+            sshagent(credentials: ['app-server-ssh']) {
+                sh """
+                    echo "🚀 Deploying to ${env.EC2_PUBLIC_IP}..."
 
-                        # Copy docker-compose.yml to the server
-                        scp -o StrictHostKeyChecking=no \
-                            docker-compose.yml \
-                            ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/docker-compose.yml
+                    # Ensure app dir exists on EC2
+                    ssh -o StrictHostKeyChecking=no ${SSH_USER}@${env.EC2_PUBLIC_IP} \
+                        'mkdir -p ${APP_DIR}'
 
-                        # Copy any .env files if present
-                        if [ -f .env ]; then
-                            scp -o StrictHostKeyChecking=no \
-                                .env \
-                                ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/.env
-                        fi
+                    # Copy compose file and .env to EC2
+                    scp -o StrictHostKeyChecking=no \
+                        app/docker-compose.yml \
+                        ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/docker-compose.yml
 
-                        # Pull images and start containers
-                        ssh -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${env.EC2_PUBLIC_IP} '
-                                set -euo pipefail
-                                cd ${APP_DIR}
+                    scp -o StrictHostKeyChecking=no \
+                        app/.env \
+                        ${SSH_USER}@${env.EC2_PUBLIC_IP}:${APP_DIR}/.env
 
-                                # Re-authenticate on the remote host
-                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    # Deploy on EC2
+                    ssh -o StrictHostKeyChecking=no ${SSH_USER}@${env.EC2_PUBLIC_IP} \
+                        DOCKER_USER="${DOCKER_USER}" \
+                        DOCKER_PASS="${DOCKER_PASS}" \
+                        APP_DIR="${APP_DIR}" \
+                        'bash -s' << 'REMOTE'
+                            set -euo pipefail
+                            cd \$APP_DIR
 
-                                docker compose pull
-                                docker compose up -d --remove-orphans
-                                docker image prune -f
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                                echo "Containers running:"
-                                docker compose ps
-                            '
-                        echo "✅ Deployment complete"
-                    """
-                }
-            }
-        }
+                            # Update image names in compose to use registry images
+                            docker compose pull
+                            docker compose up -d --remove-orphans
+                            docker image prune -f
 
-        // ──────────────────────────────────────────────────────
-        stage('Health Check') {
-        // ──────────────────────────────────────────────────────
-            when { branch 'main' }
-            steps {
-                sh '''
-                    echo "🔍 Running health check..."
-                    for i in $(seq 1 12); do
-                        if curl -sf --max-time 5 "http://${EC2_PUBLIC_IP}"; then
-                            echo "✅ App is healthy"
-                            exit 0
-                        fi
-                        echo "  Attempt $i/12 — sleeping 10s..."
-                        sleep 10
-                    done
-                    echo "❌ Health check failed after 2 minutes"
-                    exit 1
-                '''
+                            echo "=== Running containers ==="
+                            docker compose ps
+REMOTE
+
+                    echo "✅ Deployment complete"
+                """
             }
         }
     }
+}
+
+stage('Health Check') {
+    steps {
+        sh '''
+            echo "🔍 Running health check..."
+            for i in $(seq 1 12); do
+                if curl -sf --max-time 5 "http://${EC2_PUBLIC_IP}"; then
+                    echo "✅ App is healthy"
+                    exit 0
+                fi
+                echo "  Attempt $i/12 — sleeping 10s..."
+                sleep 10
+            done
+            echo "❌ Health check failed after 2 minutes"
+            exit 1
+        '''
+    }
+}
 
     // ──────────────────────────────────────────────────────────
     post {
