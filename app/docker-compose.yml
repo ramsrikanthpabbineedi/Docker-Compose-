@@ -1,13 +1,7 @@
-version: "3.9"
-
 services:
-
-  # ── NGINX (Reverse Proxy + Frontend) ─────────────────────────────────────────
   nginx:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: myfoodmylife-frontend
+    image: ramsrikanthp/myfoodmylife-frontend:latest
+    # ← remove the build: block entirely
     container_name: myfoodmylife-nginx
     ports:
       - "80:80"
@@ -20,12 +14,9 @@ services:
     networks:
       - app-network
 
-  # ── BACKEND (Node.js / Express API) ──────────────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: myfoodmylife-backend
+    image: ramsrikanthp/myfoodmylife-backend:latest
+    # ← remove the build: block entirely
     container_name: myfoodmylife-backend
     env_file:
       - .env
@@ -44,14 +35,11 @@ services:
       retries: 5
       start_period: 20s
 
-  # ── MONGODB (Database) ────────────────────────────────────────────────────────
   mongo:
     image: mongo:6.0
     container_name: myfoodmylife-mongo
-    ports:
-      - "27017:27017"          # Expose only if you need local DB access
     volumes:
-      - mongo-data:/data/db   # Persist data across restarts
+      - mongo-data:/data/db
     restart: unless-stopped
     networks:
       - app-network
@@ -62,12 +50,10 @@ services:
       retries: 5
       start_period: 20s
 
-# ── VOLUMES ───────────────────────────────────────────────────────────────────
 volumes:
   mongo-data:
     driver: local
 
-# ── NETWORKS ──────────────────────────────────────────────────────────────────
 networks:
   app-network:
     driver: bridge

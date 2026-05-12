@@ -174,7 +174,6 @@ stage('Build Images') {
     steps {
         withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
             sh '''
-                # ✅ Generate .env file from Jenkins AWS credentials — never committed to git
                 cat > app/.env << EOF
 PORT=5000
 MONGO_URI=mongodb://mongo:27017/myfoodmylife
@@ -183,13 +182,12 @@ AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 AWS_SNS_TOPIC_ARN=${SNS_TOPIC_ARN}
 EOF
-
                 echo "✅ .env file created"
-
-                # Remove obsolete version field warning — optional
                 sed -i '/^version:/d' app/docker-compose.yml
 
-                docker compose -f app/docker-compose.yml build
+                # Build with DockerHub-prefixed names directly
+                docker build -t ramsrikanthp/myfoodmylife-backend:latest  app/backend
+                docker build -t ramsrikanthp/myfoodmylife-frontend:latest app/frontend
             '''
         }
     }
@@ -203,12 +201,8 @@ EOF
             passwordVariable: 'DOCKER_PASS')]) {
             sh '''
                 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                docker tag myfoodmylife-backend:latest  $DOCKER_USER/myfoodmylife-backend:latest
-                docker tag myfoodmylife-frontend:latest $DOCKER_USER/myfoodmylife-frontend:latest
-
-                docker push $DOCKER_USER/myfoodmylife-backend:latest
-                docker push $DOCKER_USER/myfoodmylife-frontend:latest
+                docker push ramsrikanthp/myfoodmylife-backend:latest
+                docker push ramsrikanthp/myfoodmylife-frontend:latest
             '''
         }
     }
