@@ -172,7 +172,7 @@ EOF
         // ──────────────────────────────────────────────────────
        stage('Build Images') {
     steps {
-        sh 'docker compose -f docker-compose.yml up -d'
+        sh 'docker compose -f app/docker-compose.yml up -d'
     }
 }
 
