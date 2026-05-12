@@ -170,9 +170,27 @@ EOF
     }
 }
         // ──────────────────────────────────────────────────────
-       stage('Build Images') {
+stage('Build Images') {
     steps {
-        sh 'docker compose -f app/docker-compose.yml up -d'
+        withCredentials([
+            string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY'),
+            string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_KEY')
+        ]) {
+            sh '''
+                # ✅ Generate .env file from Jenkins credentials — never committed to git
+                cat > app/.env << EOF
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_KEY}
+EOF
+
+                echo "✅ .env file created"
+
+                # Remove obsolete version field warning — optional
+                sed -i '/^version:/d' app/docker-compose.yml
+
+                docker compose -f app/docker-compose.yml build
+            '''
+        }
     }
 }
 
