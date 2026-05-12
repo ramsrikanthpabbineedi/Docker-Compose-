@@ -163,7 +163,7 @@ EOF
 
             # Fix 1: correct playbook filename
             # Fix 2: remove ansible_become_password= (empty password breaks sudo)
-            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml \
+            ansible-playbook -i inventory.ini ansible/install_k8s_tools.yml\
                 --become \
                 -v
         '''
