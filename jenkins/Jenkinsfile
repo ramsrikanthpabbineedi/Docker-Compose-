@@ -195,21 +195,22 @@ EOF
     }
 }
         // ──────────────────────────────────────────────────────
-        stage('Push to Registry') {
-        // ──────────────────────────────────────────────────────
-            when { branch 'main' }
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker compose push
-                    '''
-                }
-            }
+      stage('Push to Registry') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                docker tag myfoodmylife-backend:latest $DOCKER_USER/myfoodmylife-backend:latest
+                docker tag myfoodmylife-frontend:latest $DOCKER_USER/myfoodmylife-frontend:latest
+                docker push $DOCKER_USER/myfoodmylife-backend:latest
+                docker push $DOCKER_USER/myfoodmylife-frontend:latest
+            '''
         }
+    }
+}
 
         // ──────────────────────────────────────────────────────
         stage('Deploy Application') {
