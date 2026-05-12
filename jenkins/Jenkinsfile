@@ -278,46 +278,65 @@ EOF
 
     // ──────────────────────────────────────────────────────────
     post {
-    // ──────────────────────────────────────────────────────────
-        always {
-            // Print bootstrap log for debugging regardless of outcome
-            script {
-                if (env.EC2_PUBLIC_IP) {
-                    sshagent(credentials: ['app-server-ssh']) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no \
-                                ${SSH_USER}@${env.EC2_PUBLIC_IP} \
-                                'cat /var/log/bootstrap.log || true' || true
-                        """
-                    }
+    always {
+        script {
+            if (env.EC2_PUBLIC_IP) {
+                sshagent(credentials: ['app-server-ssh']) {
+                    sh """
+                        echo "=== Docker containers on EC2 ==="
+                        ssh -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${env.EC2_PUBLIC_IP} \
+                            'docker compose ps 2>/dev/null || echo no containers running' || true
+                    """
                 }
             }
         }
-        success {
-            withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
-                sh '''
-                    TOPIC=$(aws sns list-topics \
-                        --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
-                        --output text)
-                    aws sns publish --region ${AWS_REGION} \
-                        --topic-arn "$TOPIC" \
-                        --subject "✅ Deploy success: ${JOB_NAME} #${BUILD_NUMBER}" \
-                        --message "Build ${BUILD_URL} deployed successfully to ${EC2_PUBLIC_IP}"
-                '''
-            }
-        }
-        failure {
-            withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
-                sh '''
-                    TOPIC=$(aws sns list-topics \
-                        --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
-                        --output text)
-                    aws sns publish --region ${AWS_REGION} \
-                        --topic-arn "$TOPIC" \
-                        --subject "❌ Deploy failed: ${JOB_NAME} #${BUILD_NUMBER}" \
-                        --message "See ${BUILD_URL} — check bootstrap.log for provisioning errors"
-                '''
-            }
+        // Clean up generated .env files — never leave secrets on disk
+        sh 'rm -f app/.env /tmp/app.env || true'
+    }
+
+    success {
+        withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+            sh """
+                TOPIC=\$(aws sns list-topics \
+                    --region ${AWS_REGION} \
+                    --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
+                    --output text)
+
+                if [ -z "\$TOPIC" ]; then
+                    echo "⚠️ SNS topic not found — skipping notification"
+                    exit 0
+                fi
+
+                aws sns publish \
+                    --region ${AWS_REGION} \
+                    --topic-arn "\$TOPIC" \
+                    --subject "✅ Deploy success: ${env.JOB_NAME} #${env.BUILD_NUMBER}" \
+                    --message "Build ${env.BUILD_URL} deployed successfully to ${env.EC2_PUBLIC_IP}"
+            """
         }
     }
+
+    failure {
+        withAWS(credentials: 'aws_id', region: "${AWS_REGION}") {
+            sh """
+                TOPIC=\$(aws sns list-topics \
+                    --region ${AWS_REGION} \
+                    --query "Topics[?contains(TopicArn,'${PROJECT_NAME}-alerts')].TopicArn" \
+                    --output text)
+
+                if [ -z "\$TOPIC" ]; then
+                    echo "⚠️ SNS topic not found — skipping notification"
+                    exit 0
+                fi
+
+                aws sns publish \
+                    --region ${AWS_REGION} \
+                    --topic-arn "\$TOPIC" \
+                    --subject "❌ Deploy failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}" \
+                    --message "See ${env.BUILD_URL}"
+            """
+        }
+    }
+}
 }
