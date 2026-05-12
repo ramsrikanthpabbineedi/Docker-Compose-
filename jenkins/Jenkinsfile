@@ -241,7 +241,6 @@ REMOTE
         }
     }
 }
-
 stage('Deploy Application') {
     steps {
         withCredentials([usernamePassword(
@@ -253,21 +252,32 @@ stage('Deploy Application') {
                     EC2_IP="''' + env.EC2_PUBLIC_IP + '''"
                     echo "🚀 Deploying to $EC2_IP..."
 
+                    # Create dirs, clean any stale nginx.conf directory, fix ownership
                     ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
-                        "sudo mkdir -p /opt/myapp/nginx && sudo chown -R ubuntu:ubuntu /opt/myapp"
+                        "sudo mkdir -p /opt/myapp/nginx && \
+                         sudo rm -rf /opt/myapp/nginx/nginx.conf && \
+                         sudo chown -R ubuntu:ubuntu /opt/myapp"
 
-                    # Copy compose file, .env AND nginx config
+                    # Copy compose file
                     scp -o StrictHostKeyChecking=no \
                         app/docker-compose.yml \
                         ubuntu@$EC2_IP:/opt/myapp/docker-compose.yml
 
+                    # Copy .env file
                     scp -o StrictHostKeyChecking=no \
                         app/.env \
                         ubuntu@$EC2_IP:/opt/myapp/.env
 
+                    # Copy nginx config — must be a file, not a directory
                     scp -o StrictHostKeyChecking=no \
                         app/nginx/nginx.conf \
                         ubuntu@$EC2_IP:/opt/myapp/nginx/nginx.conf
+
+                    # Verify nginx.conf copied correctly as a file
+                    ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
+                        "test -f /opt/myapp/nginx/nginx.conf && \
+                         echo '✅ nginx.conf is a file' || \
+                         (echo '❌ nginx.conf is not a file!' && exit 1)"
 
                     # Deploy on EC2
                     ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
@@ -291,6 +301,8 @@ REMOTE
         }
     }
 }
+
+    
 stage('Health Check') {
     steps {
         sh '''
