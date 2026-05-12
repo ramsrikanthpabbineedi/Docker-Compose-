@@ -13,3 +13,7 @@ output "public_ip" {
 output "instance_id" {
   value = one(module.ec2_app.instance_ids)
 }
+output "sns_topic_arn" {
+  description = "SNS Topic ARN for alerts"
+  value       = module.sns.topic_arn
+}
