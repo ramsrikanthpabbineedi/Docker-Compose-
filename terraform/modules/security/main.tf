@@ -38,6 +38,13 @@ resource "aws_security_group" "app" {
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
+   ingress {
+    description = "SSH"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   ingress {
     description     = "SSH from Jenkins"
     from_port       = 22
@@ -68,13 +75,7 @@ resource "aws_security_group" "jenkins" {
     cidr_blocks = ["0.0.0.0/0"]
     
   }
-    ingress {
-    description = "SSH"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+   
   ingress {
     description = "SSH"
     from_port   = 22

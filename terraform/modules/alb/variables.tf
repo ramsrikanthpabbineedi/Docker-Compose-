@@ -12,7 +12,7 @@ variable "alb_sg_id"           {
     }
 variable "app_port"            { 
     type = number 
-    default = 80
+    default = 8080
     }
 variable "health_check_path"   { 
     type = string
