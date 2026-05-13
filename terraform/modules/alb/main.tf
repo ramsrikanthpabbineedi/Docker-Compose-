@@ -6,7 +6,10 @@ resource "aws_lb" "this" {
   subnets            = var.public_subnet_ids
 
   enable_deletion_protection = false
-  tags = { Name = "${var.project_name}-alb" }
+  
+  tags = { 
+    Name = "${var.project_name}-alb" 
+  }
 }
 
 resource "aws_lb_target_group" "this" {
@@ -15,13 +18,23 @@ resource "aws_lb_target_group" "this" {
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
+  # Graceful connection draining
+  deregistration_delay = 30
+
   health_check {
+    # Port the health check uses
+    port                = "traffic-port"
     path                = var.health_check_path
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 3
     matcher             = "200-399"
+    enabled             = true
+  }
+
+  tags = { 
+    Name = "${var.project_name}-tg" 
   }
 }
 
@@ -42,4 +55,7 @@ resource "aws_lb_target_group_attachment" "this" {
   target_group_arn = aws_lb_target_group.this.arn
   target_id        = var.target_instance_ids[count.index]
   port             = var.app_port
+  
+  # Ensure target group is fully created before attaching
+  depends_on = [aws_lb_target_group.this]
 }
