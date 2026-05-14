@@ -6,7 +6,7 @@ pipeline {
         PROJECT_NAME    = 'myapp'
         APP_DIR         = '/opt/myapp'
         SSH_USER        = 'ubuntu'
-        // Stored in Jenkins Credentials as "Secret text"
+        // Store in Jenkins Credentials as "Secret text"
         AWS_ACCOUNT_ID  = credentials('aws-account-id')
         COMPOSE_FILE    = 'docker-compose.yml'
     }
