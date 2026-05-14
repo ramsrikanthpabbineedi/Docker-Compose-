@@ -6,7 +6,7 @@ variable "vpc_id"             {
      }
 variable "app_port"           { 
     type = number  
-    default = 8080 
+    default = 80
     }
 variable "allowed_admin_cidr" { 
     type = string  
