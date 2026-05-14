@@ -73,7 +73,7 @@ module "alb" {
   vpc_id              = module.vpc.vpc_id
   public_subnet_ids   = module.vpc.public_subnet_ids
   alb_sg_id           = module.security.alb_sg_id
-  app_port            = var.app_port
   target_instance_ids = module.ec2_app.instance_ids
 }
+# terraform/main.tf
 
