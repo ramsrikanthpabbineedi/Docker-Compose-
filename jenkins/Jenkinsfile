@@ -64,19 +64,24 @@ pipeline {
                         script: 'terraform output -raw instance_id',
                         returnStdout: true
                     ).trim()
-                    // ✅ Add this line
                     env.SNS_TOPIC_ARN   = sh(
                         script: 'terraform output -raw sns_topic_arn',
+                        returnStdout: true
+                    ).trim()
+                    // ✅ Add this — captures ALB URL from Terraform output
+                    env.ALB_URL         = sh(
+                        script: 'terraform output -raw alb_url',
                         returnStdout: true
                     ).trim()
                 }
             }
         }
-        echo "✅ EC2 IP: ${env.EC2_PUBLIC_IP} | Instance: ${env.EC2_INSTANCE_ID}"
+        echo "✅ EC2 IP:  ${env.EC2_PUBLIC_IP}"
+        echo "✅ ALB URL: ${env.ALB_URL}"
         echo "✅ SNS ARN: ${env.SNS_TOPIC_ARN}"
     }
 }
-      
+
 
         // ──────────────────────────────────────────────────────
         stage('Wait — EC2 Status Checks') {
@@ -306,26 +311,33 @@ REMOTE
 stage('Health Check') {
     steps {
         sh """
-            echo "🔍 Health check on ${env.ALB_URL}..."
+            ALB="${env.ALB_URL}"
+
+            # Guard — fail immediately if ALB URL is empty
+            if [ -z "\$ALB" ] || [ "\$ALB" = "null" ]; then
+                echo "❌ ALB_URL is not set — check Terraform output"
+                exit 1
+            fi
+
+            echo "🔍 Health check on \$ALB..."
 
             for i in \$(seq 1 30); do
                 echo "  Attempt \$i/30..."
 
                 HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" \
-                    --max-time 10 \
-                    "${env.ALB_URL}" 2>/dev/null || echo "000")
+                    --max-time 10 "\$ALB" 2>/dev/null || echo "000")
 
                 echo "  HTTP code: \$HTTP_CODE"
 
                 if [ "\$HTTP_CODE" = "200" ] || [ "\$HTTP_CODE" = "301" ] || [ "\$HTTP_CODE" = "302" ]; then
-                    echo "✅ App is healthy via ALB"
+                    echo "✅ App is healthy via ALB — \$ALB"
                     exit 0
                 fi
 
                 sleep 10
             done
 
-            echo "❌ Health check failed"
+            echo "❌ Health check failed on \$ALB"
             exit 1
         """
     }
